@@ -27,34 +27,37 @@ module.exports = class User {
         }
     }
 
-    async login(req){
-        let DB = new Model('MySQL',{table : "users"}),
+    async login(req) {
+        let DB = new Model('MySQL', { table: "users" }),
             { username, password } = req.body,
             passInHex = crypto.createHash('md5').update(username + "_" + password).digest("hex"),
             userData, temp_token;
-
-        try{
-            userData = await DB.setWhere({name : username, password : passInHex}).exists();
-            if(userData){
+        try {
+            userData = await DB.setWhere({ name: username, password: passInHex }).exists();
+            if (userData) {
                 temp_token = await this.updateTempToken(userData);
             }
-        }catch (e){
-            return e;
+        } catch (e) {
+            console.log(e);
+            throw e;
         }
-
         DB.end();
-
         return temp_token;
     }
 
-    async updateTempToken(userData){
-        let DB = new Model('MySQL',{table : "users"}),
+    async updateTempToken(userData) {
+        let DB = new Model('MySQL', { table: "users" }),
             server_timestamp = Date.now(),
-            temp_token = crypto.createHash('md5').update(server_timestamp + "_temp_token" ).digest("hex");
-
-        let updatedRow = await DB.setWhere({id: userData.id}).update({temp_token});
-        DB.end();
-        return updatedRow ? temp_token : null;
+            temp_token = crypto.createHash('md5').update(server_timestamp + "_temp_token").digest("hex");
+        try {
+            let updatedRow = await DB.setWhere({ id: userData.id }).update({ temp_token });
+            return updatedRow ? temp_token : null;
+        } catch (e) {
+            console.log(e);
+            throw e;
+        } finally {
+            DB.end();
+        }
     }
 
     async getTasks(req){

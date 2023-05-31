@@ -38,7 +38,7 @@ module.exports = class MySQL {
     }
     async exists(options){
         let result = await this.get(options);
-        return result[0] ? result[0] : false;
+        return result && result[0] ? result[0] : false;
     }
 
 
