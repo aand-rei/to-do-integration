@@ -31,12 +31,12 @@ module.exports = class User {
         let DB = new Model('MySQL',{table : "users"}),
             { username, password } = req.body,
             passInHex = crypto.createHash('md5').update(username + "_" + password).digest("hex"),
-            userData;
+            userData, temp_token;
 
         try{
             userData = await DB.setWhere({name : username, password : passInHex}).exists();
             if(userData){
-                userData = await this.updateTempToken(userData);
+                temp_token = await this.updateTempToken(userData);
             }
         }catch (e){
             return e;
@@ -44,7 +44,7 @@ module.exports = class User {
 
         DB.end();
 
-        return userData;
+        return temp_token;
     }
 
     async updateTempToken(userData){
@@ -52,10 +52,9 @@ module.exports = class User {
             server_timestamp = Date.now(),
             temp_token = crypto.createHash('md5').update(server_timestamp + "_temp_token" ).digest("hex");
 
-        await DB.setWhere({id: userData.id}).update({temp_token});
-        userData.temp_token = temp_token;
+        let updatedRow = await DB.setWhere({id: userData.id}).update({temp_token});
         DB.end();
-        return temp_token;
+        return updatedRow ? temp_token : null;
     }
 
     async getTasks(req){
@@ -85,7 +84,7 @@ module.exports = class User {
         DB.end();
 
         return {
-            tasks: result,
+            tasks: result || [],
             total_task_count: count,
             page,
             sort_field,
